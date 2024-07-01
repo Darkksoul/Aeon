@@ -13,7 +13,7 @@ from time import time
 from io import BytesIO
 from aioshutil import rmtree as aiormtree
 
-from bot import config_dict, user_data, DATABASE_URL, MAX_SPLIT_SIZE, list_drives_dict, aria2, GLOBAL_EXTENSION_FILTER, status_reply_dict_lock, Interval, aria2_options, aria2c_global, IS_PREMIUM_USER, download_dict, qbit_options, get_client, LOGGER, bot, extra_buttons, shorteners_list
+from bot import config_dict, user_data, DATABASE_URL, MAX_SPLIT_SIZE, list_drives_dict, aria2, GLOBAL_EXTENSION_FILTER, status_reply_dict_lock, Interval, aria2_options, aria2c_global, IS_PREMIUM_USER, download_dict, qbit_options, LOGGER, bot, extra_buttons, shorteners_list
 from bot.helper.telegram_helper.message_utils import sendMessage, sendFile, editMessage, update_all_messages
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.telegram_helper.bot_commands import BotCommands
@@ -21,25 +21,26 @@ from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.ext_utils.bot_utils import setInterval, sync_to_async, new_thread
 from bot.helper.ext_utils.db_handler import DbManager
 from bot.helper.ext_utils.task_manager import start_from_queued
-from bot.helper.ext_utils.text_utils import bset_display_dict
+from bot.helper.ext_utils.help_strings import bset_display_dict
 from bot.modules.torrent_search import initiate_search_tools
-from bot.modules.rss import addJob
 
 START = 0
 STATE = 'view'
 handler_dict = {}
-default_values = {'DEFAULT_UPLOAD': 'gd',
-                  'RSS_DELAY': 900,
-                  'SEARCH_LIMIT': 0,
-                  'UPSTREAM_BRANCH': 'main',
-                  'TORRENT_TIMEOUT': 3000}
-bool_vars = ['AS_DOCUMENT',
-             'DELETE_LINKS',
-             'STOP_DUPLICATE',
-             'SET_COMMANDS',
-             'SHOW_MEDIAINFO',
-             'USE_SERVICE_ACCOUNTS',
-             'WEB_PINCODE']
+default_values = {
+    'DEFAULT_UPLOAD': 'gd',
+    'SEARCH_LIMIT': 0,
+    'UPSTREAM_BRANCH': 'main',
+    'TORRENT_TIMEOUT': 3000
+}
+bool_vars = [
+    'AS_DOCUMENT',
+    'DELETE_LINKS',
+    'STOP_DUPLICATE',
+    'SET_COMMANDS',
+    'SHOW_MEDIAINFO',
+    'USE_SERVICE_ACCOUNTS'
+]
 
 
 async def load_config():
@@ -98,6 +99,10 @@ async def load_config():
                 x = x.lstrip('.')
             GLOBAL_EXTENSION_FILTER.append(x.strip().lower())
 
+    METADATA_KEY = environ.get('METADATA_KEY', '')
+    if len(METADATA_KEY) == 0:
+        METADATA_KEY = ''
+
     MEGA_EMAIL = environ.get('MEGA_EMAIL', '')
     MEGA_PASSWORD = environ.get('MEGA_PASSWORD', '')
     if len(MEGA_EMAIL) == 0 or len(MEGA_PASSWORD) == 0:
@@ -107,10 +112,6 @@ async def load_config():
     INDEX_URL = environ.get('INDEX_URL', '').rstrip("/")
     if len(INDEX_URL) == 0:
         INDEX_URL = ''
-
-    JIODRIVE_TOKEN = environ.get('JIODRIVE_TOKEN', '')
-    if len(JIODRIVE_TOKEN) == 0:
-        JIODRIVE_TOKEN = ''
 
     SEARCH_API_LINK = environ.get('SEARCH_API_LINK', '').rstrip("/")
     if len(SEARCH_API_LINK) == 0:
@@ -140,12 +141,6 @@ async def load_config():
     LEECH_DUMP_ID = environ.get('LEECH_DUMP_ID', '')
     if len(LEECH_DUMP_ID) == 0: 
         LEECH_DUMP_ID = ''
-
-    RSS_CHAT_ID = environ.get('RSS_CHAT_ID', '')
-    RSS_CHAT_ID = '' if len(RSS_CHAT_ID) == 0 else int(RSS_CHAT_ID)
-
-    RSS_DELAY = environ.get('RSS_DELAY', '')
-    RSS_DELAY = 900 if len(RSS_DELAY) == 0 else int(RSS_DELAY)
 
     CMD_SUFFIX = environ.get('CMD_SUFFIX', '')
 
@@ -195,9 +190,6 @@ async def load_config():
 
     USE_SERVICE_ACCOUNTS = environ.get('USE_SERVICE_ACCOUNTS', '')
     USE_SERVICE_ACCOUNTS = USE_SERVICE_ACCOUNTS.lower() == 'true'
-
-    WEB_PINCODE = environ.get('WEB_PINCODE', '')
-    WEB_PINCODE = WEB_PINCODE.lower() == 'true'
 
     AS_DOCUMENT = environ.get('AS_DOCUMENT', '')
     AS_DOCUMENT = AS_DOCUMENT.lower() == 'true'
@@ -255,6 +247,10 @@ async def load_config():
     if len(MIRROR_LOG_ID) == 0:
         MIRROR_LOG_ID = ''
 
+    ATTACHMENT_URL = environ.get('ATTACHMENT_URL', '')
+    if len(ATTACHMENT_URL) == 0:
+        ATTACHMENT_URL = ''
+    
     USER_MAX_TASKS = environ.get('USER_MAX_TASKS', '')
     USER_MAX_TASKS = '' if len(USER_MAX_TASKS) == 0 else int(USER_MAX_TASKS)
 
@@ -305,61 +301,63 @@ async def load_config():
                 if len(temp) == 2:
                     shorteners_list.append({'domain': temp[0],'api_key': temp[1]})
 
-    config_dict.update({'AS_DOCUMENT': AS_DOCUMENT,
-                        'BASE_URL': BASE_URL,
-                        'BOT_TOKEN': BOT_TOKEN,
-                        'BOT_MAX_TASKS': BOT_MAX_TASKS,
-                        'CMD_SUFFIX': CMD_SUFFIX,
-                        'DATABASE_URL': DATABASE_URL,
-                        'DEFAULT_UPLOAD': DEFAULT_UPLOAD,
-                        'DELETE_LINKS': DELETE_LINKS,
-                        'TORRENT_LIMIT': TORRENT_LIMIT,
-                        'DIRECT_LIMIT': DIRECT_LIMIT,
-                        'YTDLP_LIMIT': YTDLP_LIMIT,
-                        'GDRIVE_LIMIT': GDRIVE_LIMIT,
-                        'CLONE_LIMIT': CLONE_LIMIT,
-                        'MEGA_LIMIT': MEGA_LIMIT,
-                        'LEECH_LIMIT': LEECH_LIMIT,
-                        'FSUB_IDS': FSUB_IDS,
-                        'FILELION_API': FILELION_API,
-                        'USER_MAX_TASKS': USER_MAX_TASKS,
-                        'PLAYLIST_LIMIT': PLAYLIST_LIMIT,
-                        'MIRROR_LOG_ID': MIRROR_LOG_ID,
-                        'LEECH_DUMP_ID': LEECH_DUMP_ID,
-                        'IMAGES': IMAGES,
-                        'EXTENSION_FILTER': EXTENSION_FILTER,
-                        'GDRIVE_ID': GDRIVE_ID,
-                        'INDEX_URL': INDEX_URL,
-                        'JIODRIVE_TOKEN': JIODRIVE_TOKEN,
-                        'LEECH_LOG_ID': LEECH_LOG_ID,
-                        'TOKEN_TIMEOUT': TOKEN_TIMEOUT,
-                        'MEDIA_GROUP': MEDIA_GROUP,
-                        'MEGA_EMAIL': MEGA_EMAIL,
-                        'MEGA_PASSWORD': MEGA_PASSWORD,
-                        'OWNER_ID': OWNER_ID,
-                        'QUEUE_ALL': QUEUE_ALL,
-                        'QUEUE_DOWNLOAD': QUEUE_DOWNLOAD,
-                        'QUEUE_UPLOAD': QUEUE_UPLOAD,
-                        'RCLONE_FLAGS': RCLONE_FLAGS,
-                        'RCLONE_PATH': RCLONE_PATH,
-                        'RSS_CHAT_ID': RSS_CHAT_ID,
-                        'RSS_DELAY': RSS_DELAY,
-                        'SEARCH_API_LINK': SEARCH_API_LINK,
-                        'SEARCH_LIMIT': SEARCH_LIMIT,
-                        'SET_COMMANDS': SET_COMMANDS,
-                        'SHOW_MEDIAINFO': SHOW_MEDIAINFO,
-                        'STOP_DUPLICATE': STOP_DUPLICATE,
-                        'STREAMWISH_API': STREAMWISH_API,
-                        'TELEGRAM_API': TELEGRAM_API,
-                        'TELEGRAM_HASH': TELEGRAM_HASH,
-                        'TORRENT_TIMEOUT': TORRENT_TIMEOUT,
-                        'UPSTREAM_REPO': UPSTREAM_REPO,
-                        'UPSTREAM_BRANCH': UPSTREAM_BRANCH,
-                        'USER_SESSION_STRING': USER_SESSION_STRING,
-                        'GROUPS_EMAIL': GROUPS_EMAIL,
-                        'USE_SERVICE_ACCOUNTS': USE_SERVICE_ACCOUNTS,
-                        'WEB_PINCODE': WEB_PINCODE,
-                        'YT_DLP_OPTIONS': YT_DLP_OPTIONS})
+    config_dict.update(
+        {
+            'AS_DOCUMENT': AS_DOCUMENT,
+            'BASE_URL': BASE_URL,
+            'BOT_TOKEN': BOT_TOKEN,
+            'BOT_MAX_TASKS': BOT_MAX_TASKS,
+            'CMD_SUFFIX': CMD_SUFFIX,
+            'DATABASE_URL': DATABASE_URL,
+            'DEFAULT_UPLOAD': DEFAULT_UPLOAD,
+            'DELETE_LINKS': DELETE_LINKS,
+            'TORRENT_LIMIT': TORRENT_LIMIT,
+            'DIRECT_LIMIT': DIRECT_LIMIT,
+            'YTDLP_LIMIT': YTDLP_LIMIT,
+            'GDRIVE_LIMIT': GDRIVE_LIMIT,
+            'CLONE_LIMIT': CLONE_LIMIT,
+            'MEGA_LIMIT': MEGA_LIMIT,
+            'LEECH_LIMIT': LEECH_LIMIT,
+            'FSUB_IDS': FSUB_IDS,
+            'FILELION_API': FILELION_API,
+            'USER_MAX_TASKS': USER_MAX_TASKS,
+            'PLAYLIST_LIMIT': PLAYLIST_LIMIT,
+            'MIRROR_LOG_ID': MIRROR_LOG_ID,
+            'LEECH_DUMP_ID': LEECH_DUMP_ID,
+            'IMAGES': IMAGES,
+            'EXTENSION_FILTER': EXTENSION_FILTER,
+            'ATTACHMENT_URL': ATTACHMENT_URL,
+            'GDRIVE_ID': GDRIVE_ID,
+            'INDEX_URL': INDEX_URL,
+            'LEECH_LOG_ID': LEECH_LOG_ID,
+            'TOKEN_TIMEOUT': TOKEN_TIMEOUT,
+            'MEDIA_GROUP': MEDIA_GROUP,
+            'MEGA_EMAIL': MEGA_EMAIL,
+            'MEGA_PASSWORD': MEGA_PASSWORD,
+            'METADATA_KEY': METADATA_KEY,
+            'OWNER_ID': OWNER_ID,
+            'QUEUE_ALL': QUEUE_ALL,
+            'QUEUE_DOWNLOAD': QUEUE_DOWNLOAD,
+            'QUEUE_UPLOAD': QUEUE_UPLOAD,
+            'RCLONE_FLAGS': RCLONE_FLAGS,
+            'RCLONE_PATH': RCLONE_PATH,
+            'SEARCH_API_LINK': SEARCH_API_LINK,
+            'SEARCH_LIMIT': SEARCH_LIMIT,
+            'SET_COMMANDS': SET_COMMANDS,
+            'SHOW_MEDIAINFO': SHOW_MEDIAINFO,
+            'STOP_DUPLICATE': STOP_DUPLICATE,
+            'STREAMWISH_API': STREAMWISH_API,
+            'TELEGRAM_API': TELEGRAM_API,
+            'TELEGRAM_HASH': TELEGRAM_HASH,
+            'TORRENT_TIMEOUT': TORRENT_TIMEOUT,
+            'UPSTREAM_REPO': UPSTREAM_REPO,
+            'UPSTREAM_BRANCH': UPSTREAM_BRANCH,
+            'USER_SESSION_STRING': USER_SESSION_STRING,
+            'GROUPS_EMAIL': GROUPS_EMAIL,
+            'USE_SERVICE_ACCOUNTS': USE_SERVICE_ACCOUNTS,
+            'YT_DLP_OPTIONS': YT_DLP_OPTIONS
+        }
+    )
 
     if DATABASE_URL:
         await DbManager().update_config(config_dict)
@@ -385,7 +383,7 @@ async def get_buttons(key=None, edit_type=None, edit_mode=None, mess=None):
     elif key == 'private':
         buttons.ibutton('Back', "botset back")
         buttons.ibutton('Close', "botset close")
-        msg = "Send private files: config.env, token.pickle, accounts.zip, list_drives.txt, cookies.txt, terabox.txt, .netrc, or any other files!\n\nTo delete a private file, send only the file name as a text message.\n\n<b>Please note:</b> Changes to .netrc will not take effect for aria2c until it's restarted.\n\n<b>Timeout:</b> 60 seconds"
+        msg = "Send private files: config.env, token.pickle, cookies.txt, accounts.zip, terabox.txt, .netrc, or any other files!\n\nTo delete a private file, send only the file name as a text message.\n\n<b>Please note:</b> Changes to .netrc will not take effect for aria2c until it's restarted.\n\n<b>Timeout:</b> 60 seconds"
     elif edit_type == 'editvar':
         msg = f'<b>Variable:</b> <code>{key}</code>\n\n'
         msg += f'<b>Description:</b> {bset_display_dict.get(key, "No Description Provided")}\n\n'
@@ -428,10 +426,7 @@ async def update_buttons(message, key=None, edit_type=None, edit_mode=None):
 async def edit_variable(_, message, pre_message, key):
     handler_dict[message.chat.id] = False
     value = message.text
-    if key == 'RSS_DELAY':
-        value = int(value)
-        addJob(value)
-    elif key in ['LEECH_LOG_ID', 'RSS_CHAT_ID']:
+    if key == 'LEECH_LOG_ID':
         value = int(value)
     elif key == 'TORRENT_TIMEOUT':
         value = int(value)
